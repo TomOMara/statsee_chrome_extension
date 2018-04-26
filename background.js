@@ -1,59 +1,60 @@
 // background.js
 
-// Called when the user clicks on the browser action.
+// Called when the user clicks on the browser action (extension icon).
 chrome.browserAction.onClicked.addListener(function(tab) {
-  // Send a message to the active tab
+  // Send a message to the active tab, saying clicked_browser_action
   chrome.tabs.query({active: true, currentWindow: true}, function(tabs) {
     var activeTab = tabs[0];
-    chrome.tabs.sendMessage(activeTab.id, {"message": "clicked_browser_action"});
-
-    //
-    chrome.tabs.sendMessage(activeTab.id, {"message": "filter_images"});
+    console.log('message sent to active tab');
+    chrome.tabs.sendMessage(activeTab.id, {"message": "scan_page"});
+    console.log('sent scan_page message');
   });
 });
-
-// listen for message from content.js about opening a new tab
-chrome.runtime.onMessage.addListener(
-  function(request, sender, sendResponse) {
-    if( request.message === "open_new_tab" ) {
-      chrome.tabs.create({"url": request.url});
-    }
-  }
-);
 
 // listem for message to filter images
 chrome.runtime.onMessage.addListener(
   function(request, sender, sendResponse) {
-    if (request.message === "filter_images")  {
-      filtered_images = filter_images(request.images)
-      send_message_to_active_tab({"message":"filtered_images",
-                                  "filtered_images":filtered_images })
-    }
+    if (request.message === "parse_image_with_url")  {
+      chrome.tabs.query({active: true, currentWindow: true}, function(tabs) {
+
+
+
+        var activeTab = tabs[0];
+        console.log('recieved parse_image_with_url message from content: img_src = ', request.img_src);
+
+        var img_src = request.img_src;
+
+        endpoint = 'http://127.0.0.1:5000/';
+        method = 'POST';
+        $.ajax({
+            type: method,
+            url: endpoint,
+            data: { 'url': img_src },
+            success: function(response)
+            {
+                 message = JSON.parse(response).message;
+                 status = JSON.parse(response).status;
+                 console.log(img_src + message + status);
+
+                 data = JSON.parse(response).data;
+                 console.log(data);
+                 if (data) {
+                      marked_up_data = "<div class=\"alert alert-success\" role=\"alert\" style='margin: auto'>\n<p>" + data + "</p></div>";
+                      chrome.tabs.sendMessage(activeTab.id, {"message":"inject_description",
+                                                             "marked_up_data": marked_up_data,
+                                                             "rel_src": request.rel_src });
+                      console.log('sent inject_description message: marked_up_data = ', marked_up_data);
+                 }
+            },
+            failure: function(f_response) {
+                console.log('failed :(');
+            },
+            dataType: 'html'
+         });
+        });
+      }
   }
 );
 
-var send_message_to_active_tab = function(message) {
-  chrome.tabs.query({active: true, currentWindow: true}, function(tabs) {
-    var activeTab = tabs[0];
-    chrome.tabs.sendMessage(activeTab.id, message);
-  });
-}
-var image_is_translatable = function(image) {
-  // hit API to determine if image is translatable
-  console.log('image = ', image)
-  return true; // stubbed logic
-}
 
-var filter_images = function(images) {
-  console.log('got images within filter_images: ' + images)
 
-  translatable_images = [];
-
-  for (var image in images[images])  {
-    if (image_is_translatable(image)) {
-        translatable_images += image;
-    }
-  }
-
-  return translatable_images
-}
