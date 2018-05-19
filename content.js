@@ -22,10 +22,7 @@ chrome.runtime.onMessage.addListener(
     }
 
     if ( request.message === "inject_description") {
-      console.log('recieved marked_up_data message data: ', request.marked_up_data);
       var marked_up_data = request.marked_up_data;
-
-      console.log('marked_up_data:', marked_up_data);
 
       var selector = "img[src$=".concat('\'', request.rel_src, '\'', "]");
       console.log('selector = ', selector);

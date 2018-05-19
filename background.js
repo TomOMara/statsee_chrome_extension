@@ -39,11 +39,19 @@ chrome.runtime.onMessage.addListener(
                  data = JSON.parse(response).data;
                  console.log(data);
                  if (data) {
-                      marked_up_data = "<div class=\"alert alert-success\" role=\"alert\" style='margin: auto'>\n<p>" + data + "</p></div>";
-                      chrome.tabs.sendMessage(activeTab.id, {"message":"inject_description",
-                                                             "marked_up_data": marked_up_data,
-                                                             "rel_src": request.rel_src });
-                      console.log('sent inject_description message: marked_up_data = ', marked_up_data);
+                     if (data === 'We do not support this type of graph yet but plan to in the future!') {
+                         marked_up_data = "<div class=\"alert alert-warning\" role=\"alert\" style='margin: auto'>\n<p>" + data + "</p></div>";
+
+                     } else {
+                         marked_up_data = "<div class=\"alert alert-success\" role=\"alert\" style='margin: auto'>\n<p>" + data + "</p></div>";
+
+                     }
+                     chrome.tabs.sendMessage(activeTab.id, {
+                        "message": "inject_description",
+                        "marked_up_data": marked_up_data,
+                        "rel_src": request.rel_src
+                     });
+                     console.log('sent inject_description message: marked_up_data = ', marked_up_data);
                  }
             },
             failure: function(f_response) {
